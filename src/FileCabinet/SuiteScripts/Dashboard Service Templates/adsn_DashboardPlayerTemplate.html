@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Netsuite Dashboard Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta content="text/html; charset=iso-8859-2" http-equiv="Content-Type">
+<style>
+.dashletContentiFrame {
+	display: none; 
+	border: none; 
+	position: absolute; 
+	top: 0; 
+	left: 0; 
+	height: 100%; 
+}
+</style>
+</head>
+<body>
+	<#list playlist.urls as purl>
+		<iframe src="${purl}" class="dashletContentiFrame" style="width: 100%"></iframe>
+	</#list>
+<script>
+	var myIndex = 0;
+	function carousel() {
+		var i;
+		var durations = [<#list playlist.durations as d>${d}<#sep>,</#list>];
+		var x = document.getElementsByClassName("dashletContentiFrame");
+		for (i = 0; i < x.length; i++) {
+			x[i].style.display = "none";  
+		}
+		myIndex++;
+		if (myIndex > x.length) { myIndex = 1; }
+		var dIndex = myIndex-1;
+		x[dIndex].style.display = "block";
+		var timeout = (durations[dIndex]) ? durations[dIndex] : 10000;
+		setTimeout(carousel, timeout); 
+	}
+
+	carousel();
+</script>
+</body>
+</html>

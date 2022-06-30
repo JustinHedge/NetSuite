@@ -1,0 +1,80 @@
+<#ftl output_format="HTML">
+<html>
+<head>
+     <script type='text/javascript' src='/assets/legacy_highcharts/3077950978.js?NS_VER=2020.1.0&minver=63'></script>
+    <script type='text/javascript' src='/javascript/NLHighCharts_Constants.jsp?NS_VER=2020.1.0&minver=63&JSP_VER=1&locale=en_US'></script>
+    <script type='text/javascript' src='/assets/legacy_highcharts/3529287346.js?NS_VER=2020.1.0&minver=63'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+        var myChart = Highcharts.chart('chart01', {
+            chart: {
+                type: 'bar',
+            },
+            title: {
+                text: ''
+            },
+            xAxis: {
+                categories: [<#list search.results as result>"${result.data[0].value}"<#sep>,</#list>],
+	            labels: {style: {fontSize: '2em'}}
+            },
+            yAxis: {
+                title: {
+                    text: ''
+                },
+	            labels: {style: {fontSize: '1.5em'}}
+            },
+            series: [{
+                name: 'Bar Label',
+                data: [<#list search.results as result>${result.data[1].value}<#sep>,</#list>],
+            }]
+        });
+    });
+</script>
+<style type="text/css">
+body {
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+}
+
+h1 {
+font-size: 40;
+text-align: center;
+}
+
+#tablesummary {
+	padding: 10px;
+	font-style: italic;
+	
+}
+
+.highcharts-container {
+	font-size: 20;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2;}
+
+tr:hover {background-color: #ddd;}
+
+th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #3167ad;
+  color: white;
+} 
+</style>
+</head>
+<body>
+	<h1>${search.title}</h1>
+	<div id="chart01" style="width: 90%; height: 80%">chart here</div>
+<!-- 	<div id="tablesummary">Displaying ${search.results?size} of ${search.total} rows</div>
+ --></body>
+</html>

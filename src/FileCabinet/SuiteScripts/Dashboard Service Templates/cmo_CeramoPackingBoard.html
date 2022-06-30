@@ -1,0 +1,282 @@
+<#ftl output_format="HTML">
+<html>
+<head>
+<style type="text/css">
+body {
+  font-family: "Montserrat", "Trebuchet MS", Arial, Helvetica, sans-serif;
+  background-color: #fefefe;
+}
+
+h1 {
+font-size: 3.3em;
+text-align: center;
+color:#046546;
+margin-top:0px;padding-top:0px;
+}
+
+#tablesummary {
+	padding: 10px;
+	font-style: italic;
+	
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  padding: 11px;
+  font-size: 1.3em;
+}
+
+tr:nth-child(even){background-color: #f2f2f2;}
+
+
+th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #D0751A;
+  color: white;
+} 
+.highcharts-figure .chart-container {
+    width: 700px;
+    height: 500px;
+    float: left;
+}
+
+.highcharts-figure,
+.highcharts-data-table table {
+    width: 800px;
+    margin: 0 auto;
+}
+
+.highcharts-data-table table {
+    font-family: Verdana, sans-serif;
+    border-collapse: collapse;
+    border: 1px solid #ebebeb;
+    margin: 10px auto;
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+.highcharts-data-table caption {
+    padding: 1em 0;
+    font-size: 1.2em;
+    color: #000;
+}
+
+.highcharts-data-table th {
+    font-weight: 600;
+    padding: 0.5em;
+}
+
+.highcharts-data-table td,
+.highcharts-data-table th,
+.highcharts-data-table caption {
+    padding: 0.5em;
+}
+
+.highcharts-data-table thead tr,
+.highcharts-data-table tr:nth-child(even) {
+    background: #f8f8f8;
+}
+
+.highcharts-data-table tr:hover {
+    background: #f1f7ff;
+}
+
+@media (max-width: 600px) {
+    .highcharts-figure,
+    .highcharts-data-table table {
+        width: 100%;
+    }
+
+    .highcharts-figure .chart-container {
+        width: 600px;
+        float: none;
+        margin: 0 auto;
+    }
+}
+
+.highcharts-axis-labels { color: #fff;}
+
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+</head>
+<body>
+<!-- highcharts data transport -->
+<input id="dataTable" type="hidden" value="${results.pickingList}" />
+<input id="totalAmount" type="hidden" value="${results.totalAmount}" />
+<input id="totalAmountGoal" type="hidden" value="${results.totalAmountGoal}" />
+
+	<!--2 second "fade in" on dashlet page load... -->
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$('#pageLoadEffect').fadeIn(2000);
+		});
+	</script>
+	<div id="pageLoadEffect" style="display:none;">
+	<table cellspacing="0" cellpadding="0" style="border:0px;margin-top:-137px;"><tr><td style="width:33%;border:0px;">
+		<figure class="highcharts-figure">
+			<div id="container-speed" class="chart-container"></div>
+		</figure>
+	</td>
+<td><div style="text-align: center;margin-bottom:11px;">
+	<img alt="Ceramo" style="display:inline;padding:11px;width:150px;height:150px;vertical-align: middle;"
+		src="https://1049047.app.netsuite.com/core/media/media.nl?id=132102&c=1049047&h=I4rwgqDY6mpJ7AhIeo-zeCaKFrwPKY2xUxAQ7i4udLNeKfZl" /><h1 style="white-space: nowrap;display:inline">Packing Dashboard</h1>
+</div></td>
+</tr></table>	
+	
+		<#if pickingListSearch?size != 0>
+		<table>
+			<#list pickingListSearch as result><#if result_index == 0>
+			<thead>
+				<tr>
+					<#list pickingListSearch.data as col>
+					<th>${col.label}</th> </#list>
+				</tr>
+			</thead>
+			</#if>
+			<tr>
+				<#list result.data as col>
+				<td>${col.value}</td> </#list>
+			</tr>
+			</#list>
+		</table>
+		<#else>
+		</#if>
+		<center><div id="myDiv" style="width:90%"></div></center>
+	</div>
+	<!-- TODO: [ADSN-12] jQuery fade out effect based on transition time setting for dashboard service -->
+
+	<script type="text/javascript">
+
+    Highcharts.setOptions({
+		lang: {
+			thousandsSep: ','
+		}
+	});
+
+var gaugeOptions = {
+    chart: {
+        type: 'solidgauge'
+    },
+
+    title: null,
+
+    pane: {
+        center: ['50%', '85%'],
+        size: '120%',
+        startAngle: -90,
+        endAngle: 90,
+        background: {
+            backgroundColor:'#fefefe',
+            innerRadius: '60%',
+            outerRadius: '100%',
+            shape: 'arc'
+        }
+    },
+
+    exporting: {
+        enabled: false
+    },
+
+    tooltip: {
+        enabled: false
+    },
+
+    // the value axis
+    yAxis: {
+        stops: [
+			[0.1, '#DF5353'], // red
+            [0.5, '#D0751A'], // ceramo yellow
+			[0.9, '#046546'] //  Ceramo green
+           
+        ],
+        lineWidth: 0,
+        tickWidth: 0,
+        minorTickInterval: null,
+        tickAmount: 2,
+        title: {
+            y: -70
+        },
+        labels: {
+            y: 50,
+            style: {
+                color: '#ffffff',
+                fontSize: '2.3em',
+                       
+            },
+            formatter: function () {
+                    return '$' + this.axis.defaultLabelFormatter.call(this).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                }    
+        }
+           
+    },
+
+    plotOptions: {
+        solidgauge: {
+            dataLabels: {
+                y: 5,
+                borderWidth: 0,
+                useHTML: true,
+            }
+            
+        }
+    }
+};
+		var val = $("#dataTable").val();
+		var myDiv = document.getElementById("myDiv").innerHTML = val;
+		var totalAmount = $("#totalAmount").val();
+		var totalAmountGoal = $("#totalAmountGoal").val();
+
+		totalAmount = parseInt(totalAmount);
+        var formattedGoalAmount = parseInt(totalAmountGoal);
+        var formattedTotalAmount = (totalAmount).toLocaleString('en');
+         formattedGoalAmount = (formattedGoalAmount).toLocaleString('en');
+	
+    //	alert("[debug] totalAmount = "+totalAmount+" , totalAmountGoal = "+totalAmountGoal);
+	
+		var chartSpeed = Highcharts.chart('container-speed', 
+		Highcharts.merge(gaugeOptions, {
+    yAxis: {
+        min: 0,
+        max: totalAmountGoal,
+        title: {
+            text: ''
+        }
+    },
+
+    credits: {
+        enabled: false
+    },
+
+    series: [{
+        name: 'Amount Packed',
+        data: [totalAmount],
+        dataLabels: {
+            format:
+                '<div style="text-align:center">' +
+                '<span style="font-size:2.3em">$'+formattedTotalAmount+'</span> <span style="font-size:2.3em;"> <i><p style="font-color:#cccccc">of $'+formattedGoalAmount+'</p></i></span><br/>' +
+                '<span style="font-size:2em;opacity:0.8;color:#000000">Total Amount Packed this Week</span>' +
+               '</div>'
+        },
+        tooltip: {
+            valueSuffix: 'Total Amount Packed this Week'
+        }
+    }]
+
+}));
+
+
+</script>
+</body>
+</html>

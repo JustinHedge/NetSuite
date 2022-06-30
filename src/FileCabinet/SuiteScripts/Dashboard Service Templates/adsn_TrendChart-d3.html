@@ -1,0 +1,273 @@
+<#ftl output_format="HTML">
+<html>
+<head>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+	document.addEventListener('DOMContentLoaded', function () {
+//		var resultObj = search.results;
+		var data = [
+{'period': 'Jan-20', 'start': '01/01/2020', 'end': '01/31/2020', 'goal': 5600000, 'actual': 3387920.6},
+{'period': 'Feb-20', 'start': '02/01/2020', 'end': '02/29/2020', 'goal': 4200000, 'actual': 5829420.3},
+{'period': 'Mar-20', 'start': '03/01/2020', 'end': '03/31/2020', 'goal': 3400000, 'actual': 3674540.9},
+{'period': 'Apr-20', 'start': '04/01/2020', 'end': '04/30/2020', 'goal': 3400000, 'actual': 2003600.3},
+{'period': 'May-20', 'start': '05/01/2020', 'end': '05/31/2020', 'goal': 3400000, 'actual': 2083200.3},
+{'period': 'Jun-20', 'start': '06/01/2020', 'end': '06/30/2020', 'goal': 3900000, 'actual': 2003600.3},
+{'period': 'Jul-20', 'start': '07/01/2020', 'end': '07/31/2020', 'goal': 4000000, 'actual': ''},
+{'period': 'Aug-20', 'start': '08/01/2020', 'end': '08/31/2020', 'goal': 4000000, 'actual': ''},
+{'period': 'Sep-20', 'start': '09/01/2020', 'end': '09/30/2020', 'goal': 4000000, 'actual': ''},
+{'period': 'Oct-20', 'start': '10/01/2020', 'end': '10/31/2020', 'goal': 4000000, 'actual': ''},
+{'period': 'Nov-20', 'start': '11/01/2020', 'end': '11/30/2020', 'goal': 4000000, 'actual': ''},
+{'period': 'Dec-20', 'start': '12/01/2020', 'end': '12/31/2020', 'goal': 3400000, 'actual': ''},
+		            ];
+
+//		d3.select("body").style("background-color", "yellow");    
+		//Create the container and offset the origin
+		var width = 1800;
+		var height = 900;
+		var margin = {top: 20, right: 50, bottom: 60, left: 200}
+		var svg =  d3.select('svg.chart01');
+		//start from scratch each time we draw the chart
+		if (svg) {
+			svg.remove();
+		}
+		svg = d3.select('body').append('svg').attr('class', 'chart01')/*for debug:.style('background-color', 'pink')*/.style('width', width + 'px').style('height', height + 'px');
+		var origin = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+		//handle scaling
+		var x = d3.scaleTime().rangeRound([0, width - margin.left - margin.right]);
+		var y = d3.scaleLinear().rangeRound([height - margin.top - margin.bottom, 0]);
+		
+		var formatCurrency = function(number) { 
+			if (number == 0) {
+				return '$ -- ';
+			}
+			//3 significant figures, never show cents!
+			if (number < 100) {
+				return d3.format('$.0s')(number).toUpperCase();
+			} else {
+				return d3.format('$.3s')(number).toUpperCase();
+			}
+			
+		}
+		
+		var now = new Date().getTime();
+		var actualAg = 0;
+		var goalAg = 0;
+		for (var i = 0; i < data.length; i++) {
+			var d = data[i];
+			
+			//parse date strings back to date objects
+			d.start = new Date(d.start);
+			d.end = new Date(d.end);
+			
+			//aggregate actuals and goals as totals for each point in time at the end of a period
+			if (d.start.getTime() < now) {
+				actualAg += d.actual;
+			}
+			goalAg += d.goal;
+			d.actual = actualAg;
+			d.goal = goalAg;
+		}
+		
+		//determine width of a period to create an empty tick before the others
+		var dateDiff = 0;
+		if (data.length > 1) {
+			dateDiff = data[0].start.getTime() - data[1].start.getTime();
+		} else if (data.length > 0) {
+			dateDiff = data[0].start.getTime() - data[0].end.getTime();
+		}
+		
+		var firstDateTick;
+		if (dateDiff != 0) {
+			firstDateTick = new Date();
+			firstDateTick.setTime(data[0].start.getTime() + dateDiff);
+		}
+		
+		//include a point at (0,0) to connect the line to the origin of the graph -- concat zero revenue to the front of the array
+		var zeroRevData = {start: firstDateTick, end: firstDateTick, goal: 0, actual: 0, name: ''};
+		data = [zeroRevData].concat(data);
+		
+		//include all start dates in the domain by getting the earliest and latest start dates
+		var minMaxDates = d3.extent(data, function(d) { return d.start; });
+		x.domain(minMaxDates);
+		
+		//line for actual revenue should stop after the period we are currently in
+		var dataSoFar = data.filter(function(d) { console.log(JSON.stringify(d));return d.start.getTime() < now; });
+		//dotted line for average of the actual so far
+		//periods so far is one less than the length of data because of the zero revenue point
+		var avgSoFar = actualAg / (dataSoFar.length - 1);
+		var dataAvgs = [zeroRevData].concat({start: minMaxDates[1], end: minMaxDates[1], goal: 0, actual: avgSoFar * (data.length-1)});
+		
+		
+		//include all revenue in the domain by getting the lowest and highest from goal, actual, and average
+		var goalRange = d3.extent(data, function(d) { return d.goal; });
+		var actualRange = d3.extent(data, function(d) { return d.actual; });
+		var averageRange = d3.extent(dataAvgs, function(d) { return d.actual; });
+		//have y axis go 20% above highest revenue
+		var yMax = d3.max([goalRange[1], actualRange[1], averageRange[1]]) * 1.2;
+		var minMaxRevenues = [d3.min([goalRange[0], actualRange[0], averageRange[0]]), yMax];
+		y.domain(minMaxRevenues);
+		
+		var goalAreaAboveLine = d3.area()
+		    .x(function(d) { return x(d.start); })
+		    .y1(function(d) { return y(d.goal); });
+		var goalAreaBelowLine = d3.area()
+		    .x(function(d) { return x(d.start); })
+		    .y1(function(d) { return y(d.goal); })
+		    .y0(y(0));
+		var goalAreaBelowYellowLine = d3.area()
+		    .x(function(d) { return x(d.start); })
+		    .y1(function(d) { return y(d.goal); })
+		    .y0(y(0));
+		var actualLine = d3.line()
+			.x(function(d) { return x(d.start); })
+			.y(function(d) { return y(d.actual); });
+		var averageLine = d3.line()
+			.x(function(d) { return x(d.start); })
+			.y(function(d) { return y(d.actual); });
+		
+		//for yellow area: lower goal for each data point by x%
+		var pctBelowGoalOk = 1 - .2;
+		var goalYellowAreaLineData = [];
+		for (var i = 0; i < data.length; i++) {
+			var d = data[i];
+			var cpy = {};
+			for (var attr in d) {
+				if (attr == 'goal') {
+					cpy[attr] = d[attr] * (pctBelowGoalOk);//x% lower
+				} else {
+					cpy[attr] = d[attr];
+				}
+			}
+			goalYellowAreaLineData.push(cpy);
+		}
+		
+		//include all start dates and one start date before as ticks on the x-axis and display their period names
+		var dateTicks = [];
+		var dateTickNames = {};//map: {key=date, value=displayname}
+		for (var i = 0; i < data.length; i++) {
+			var d = data[i];
+			dateTicks.push(d.start);
+			dateTickNames[d.start] = d.period;
+		}
+		
+		console.log(JSON.stringify(dateTicks))
+		
+		var xAxis = d3.axisBottom(x).tickValues(dateTicks);
+		xAxis.tickFormat(function(date) { return dateTickNames[date]; });
+		
+		var yAxis = d3.axisLeft(y).ticks(12);
+		var yAxisLines = d3.axisLeft(y).ticks(12);
+		yAxis.tickFormat(formatCurrency);
+	
+		var gray = d3.color('#D2D2D2');
+		var green = d3.color('#6AD471');
+		var yellow = d3.color('#F7FF89');
+		var red = d3.color('#F97272');
+		var actualLineColor = d3.color('#3232FF');
+		var averageLineColor = d3.color('#585858');
+		
+		
+		if (actualAg > 0 || goalAg > 0) {
+			//plot the area above the goal line
+			origin.append('path').datum(data).attr('fill', green).attr('stroke', green).attr('stroke-width', 1.5).attr('d', goalAreaAboveLine);
+		} else {
+			//display "No Data"
+			origin.append('text').attr('transform', 'translate(' + (width - margin.left - margin.right) / 2 + ',' + (height - margin.top - margin.bottom) / 2 + ')').style('text-anchor', 'center').text('No Data');
+		}
+		
+		if (goalAg > 0) {
+			//plot the area below the goal line
+			origin.append('path').datum(data).attr('fill', yellow).attr('stroke', yellow).attr('stroke-width', 1.5).attr('d', goalAreaBelowLine);
+			
+			//plot the area below the x% below goal line
+			origin.append('path').datum(goalYellowAreaLineData).attr('fill', red).attr('stroke', red).attr('stroke-width', 1.5).attr('d', goalAreaBelowLine);
+		}
+		
+		if (actualAg > 0 || goalAg > 0) {
+			//draw the horizontal lines across the chart
+			origin.append('g').attr('stroke-width', 0.25).attr('stroke', gray).call(yAxisLines.tickSize(-(width - margin.left - margin.right), 0, 0).tickFormat(''));
+		}
+		
+		if (actualAg > 0) {
+			//plot the average line
+			origin.append('path').datum(dataAvgs).attr('fill', 'none').attr('stroke', averageLineColor).style('stroke-dasharray', '4,4').attr('stroke-width', 2.5).attr('d', averageLine);
+			
+			//plot the actual line
+			origin.append('path').datum(dataSoFar).attr('fill', 'none').attr('stroke', actualLineColor).attr('stroke-width', 2.5).attr('d', actualLine);
+		}
+		
+		//draw the bottom x-axis
+		//translate horizontally for room for the y-axis
+		origin.append('g').attr('class', 'chart01').attr('class', 'axis').attr('transform', 'translate(0,' + (height - margin.top - margin.bottom) + ')').call(xAxis);
+		//draw the left y-axis
+		origin.append('g').attr('class', 'chart01').attr('class', 'axis').attr('transform', 'translate(0,0)').call(yAxis);
+		
+		//draw the legend
+		var squareSize = 10;
+		var legendOrigin = origin.append('g').attr('transform', 'translate(' + (width - margin.right) / 4 + ',' + (height - squareSize - margin.bottom / 3) + ')');
+		legendOrigin.append('rect').attr('width', squareSize).attr('height', squareSize)
+		.attr('transform', 'translate(0,-' + (squareSize) + ')')
+		.attr('fill', yellow).attr('stroke', yellow);
+		legendOrigin.append('text').attr('transform', 'translate(' + (squareSize * 1.5) + ',0)').text(d3.format(".0%")(pctBelowGoalOk) + ' of goal');
+		
+		legendOrigin.append('rect').attr('width', squareSize).attr('height', squareSize)
+		.attr('transform', 'translate(' + (width - margin.right) / 4 + ',-' + squareSize + ')')
+		.attr('fill', red).attr('stroke', red);
+		legendOrigin.append('text').attr('transform', 'translate(' + ((width - margin.right) / 4 + squareSize * 1.5) + ',0)').text('Under ' + d3.format(".0%")(pctBelowGoalOk) + ' of goal');
+	});
+</script>
+<style type="text/css">
+body {
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+}
+
+h1 {
+font-size: 40;
+text-align: center;
+}
+
+#tablesummary {
+	padding: 10px;
+	font-style: italic;
+	
+}
+
+.highcharts-container {
+	font-size: 20;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2;}
+
+tr:hover {background-color: #ddd;}
+
+th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #3167ad;
+  color: white;
+}
+.chart01 {
+ 	font: 1em Trebuchet MS, Arial, Helvetica, sans-serif; 
+ }
+.axis {
+	font: 1.2em Trebuchet MS, Arial, Helvetica, sans-serif;
+}
+</style>
+</head>
+<body>
+	<h1>Report Title</h1>
+	<svg class="chart01">chart here</svg>
+<!-- 	<div id="tablesummary">Displaying ${search.results?size} of ${search.total} rows</div>
+ --></body>
+</html>
